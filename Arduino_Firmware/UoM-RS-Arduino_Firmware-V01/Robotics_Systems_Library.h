@@ -14,19 +14,32 @@
 #define POSITION 0
 #define VELOCITY 1
 #define ERROR -1
+#define RAD_2_SMS 4096/(2*PI)
+#define RAD_2_SMS_VEL 4096/(2*PI)
+#define ACK_DATA_RECEIVED "d"
+
+
+// State variable
+static enum {
+    IDLE,
+    READ_FB,
+    DRIVE_MOTOR,
+    UPDATE_MOTOR
+} state = IDLE;
+
 
 
 class UOM_RS_Robot
 {
 public:
   SMS_STS motors;                                       // Motor Object used to send & receive motor data
-  u8 num_ID;
+  u8 num_ID;                                            // Number of connected motors
   int connection_status;
-  u8 ID[MAX_ID] = {1, 2, 3, 4, 5, 6, 7, 8};
-  u8 connected_ID[MAX_ID] = {255, 255, 255, 255, 255, 255, 255, 255};
-  s16 q_FB[MAX_ID];
+  u8 ID[MAX_ID];
+  u8 connected_ID[MAX_ID];
+  s16 q_FB_STS[MAX_ID];
   s16 q_STS[MAX_ID];
-  s16 q_dot_STS[MAX_ID] = {0, 0, 0, 0, 0, 0, 0, 0};
+  s16 q_dot_STS[MAX_ID];
   
   
 
@@ -42,10 +55,16 @@ public:
   void DriveMotors();
   void ReadFeedback();
   void InitMotorFeedback();
+  int getState();
+  void SendFB2MATLAB();
+  void getReference(bool *control_mode);
 
 private:
   bool control_mode[MAX_ID] = {0,0,0,0,0,0,0,0};
   void UpdateMotorControlMode();
+  void sendDataSerial(int *data, int dataSize);
+  void getDataSerial(double *serialData);
+  void sendAck(char ack);
 };
 
 
