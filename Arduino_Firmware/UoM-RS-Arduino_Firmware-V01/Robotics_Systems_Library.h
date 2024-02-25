@@ -9,7 +9,7 @@
 // SMS_STS st;                                       // Motor Object used to send & receive motor data
 #define MOTOR_BAUD_RATE 1000000                       // BaudRate used between Arduino and Motors
 #define USB_BAUD_RATE 115200                          // BaudRate used between MATLAB and Arduino
-#define CONNECTION_TIMEOUT 2000                       // Timeout for connecting to MATLAB
+#define CONNECTION_TIMEOUT 10000                       // Timeout for connecting to MATLAB
 #define MAX_ID 8                                      // MAX Number of motors
 #define POSITION 0
 #define VELOCITY 1
@@ -24,6 +24,7 @@ static enum {
     IDLE,
     READ_FB,
     DRIVE_MOTOR,
+    UPDATE_DRIVE_MODE,
     UPDATE_MOTOR
 } state = IDLE;
 
@@ -40,6 +41,7 @@ public:
   s16 q_FB_STS[MAX_ID];
   s16 q_STS[MAX_ID];
   s16 q_dot_STS[MAX_ID];
+  bool control_mode[MAX_ID];
   
   
 
@@ -57,10 +59,13 @@ public:
   void InitMotorFeedback();
   int getState();
   void SendFB2MATLAB();
-  void getReference(bool *control_mode);
+  void getReference();
+  void sendMotorIDs();
+  void getControlMode();
+  
 
 private:
-  bool control_mode[MAX_ID] = {0,0,0,0,0,0,0,0};
+  
   void UpdateMotorControlMode();
   void sendDataSerial(int *data, int dataSize);
   void getDataSerial(double *serialData);

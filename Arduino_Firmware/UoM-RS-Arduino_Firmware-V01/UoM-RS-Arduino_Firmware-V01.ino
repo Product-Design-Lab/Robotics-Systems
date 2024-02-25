@@ -32,7 +32,7 @@ TO TEST
 
 #include "Robotics_Systems_Library.h"
 
-#define TIMESTEP_MILLISECONDS 5
+#define TIMESTEP_MILLISECONDS 3
 
 UOM_RS_Robot robot;
 unsigned long tic = 0, toc = 0, timer = 0;
@@ -42,11 +42,11 @@ unsigned long tic = 0, toc = 0, timer = 0;
 
 bool control_mode[MAX_ID] = {
                   POSITION, // Motor ID 1
-                  VELOCITY, // Motor ID 2
+                  POSITION, // Motor ID 2
                   POSITION, // Motor ID 3
                   POSITION, // Motor ID 4
                   POSITION, // Motor ID 5
-                  VELOCITY, // Motor ID 6
+                  POSITION, // Motor ID 6
                   POSITION, // Motor ID 7
                   POSITION  // Motor ID 8
                   };
@@ -59,24 +59,35 @@ void setup() {
   robot.EstablishMotorSerialConnection();
   
   robot.getID();
+  robot.sendMotorIDs();
   
-  if (robot.connection_status != 1) {
-    Serial.println("Number of Connected Motors: " + String(robot.num_ID));
-  }
+  // if (robot.connection_status != 1) {
+  //   Serial.println("Number of Connected Motors: " + String(robot.num_ID));
+  // }
   
 
   robot.InitMotorFeedback();
 
   // Set motors to position or velocity control mode
   robot.SetMotorControlMode(control_mode);
-
-  // Begin measuring execution time
-  tic = micros();
-
+  
+  // for (int i=0; i<MAX_ID; i++) {
+  //   Serial.print(String(robot.control_mode[i]) + ", ");
+  // }
+  // Serial.println();
 }
 
 void loop() {
 
+  // Begin measuring execution time
+  tic = millis();
+
+  // robot.SerialMonitorMotorControl();
+  // Serial.print("Control Mode - Loop Level: ");
+  // for (int i=0; i<MAX_ID; i++) {
+  //   Serial.print(String(robot.control_mode[i]) + ", ");
+  // }
+  // Serial.println();
 
   // Finite State Machine
   switch (state) {
@@ -85,9 +96,9 @@ void loop() {
       if (robot.connection_status == 1) {
         state = robot.getState();
       }
-      else {
-        robot.SerialMonitorMotorControl();
-      }
+      // else {
+      //   robot.SerialMonitorMotorControl();
+      // }
       
       break;
 
@@ -98,8 +109,16 @@ void loop() {
       break;
 
     case DRIVE_MOTOR:
-      robot.getReference(control_mode);
+
+      robot.getReference(); 
       robot.DriveMotors();
+      state = IDLE;
+      break;
+      
+
+    case UPDATE_DRIVE_MODE:
+
+      robot.getControlMode();
       state = IDLE;
       break;
       
@@ -119,10 +138,11 @@ void loop() {
   // Wait until the full time-step unless running late.
   toc = millis();
   timer = toc - tic;
+
   if (timer > TIMESTEP_MILLISECONDS) {
+    // Serial.println("Warning: Running late by " + String(timer - TIMESTEP_MILLISECONDS) + " milliseconds!");
     return;
   }
-  // Reset execution timer start
-  tic = micros();
+  
 
 }
