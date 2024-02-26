@@ -25,21 +25,22 @@ function [s] = establishSerial(port, baudrate)
     % @ baudrate            - BaudRate used between MATLAB and Arduino.
     
     % Create serial object
-    s = serial(port,'BaudRate', baudrate); 
-    fopen(s);
+%     s = serial(port,'BaudRate', baudrate); 
+    s = serialport(port,baudrate); 
+%     fopen(s);
 
     % Wait for arduino to send connection request
-    while ( fread(s, 1, 'uchar') ~= 'a' ) 
+    while ( read(s, 1, 'char') ~= 'a' ) 
     end
 
     % Send back ack to arduino
-    fprintf(s, '%c', 'a'); 
+    writeline(s,'a'); 
 
     % Wait for arduino ack
-    while ( fread(s, 1, 'uchar') ~= 'b' ) 
+    while ( read(s, 1, 'char') ~= 'b' ) 
     end
 
     % Consume a NaN
-    temp = fscanf(s,'%s');
+    temp = readline(s);
 
 end

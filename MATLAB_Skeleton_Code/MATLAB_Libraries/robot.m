@@ -71,7 +71,6 @@ classdef robot < handle
                 end
 
             end
-
             sendMotorCommand(obj.serial_obj, value, obj.max_id)
 
         end

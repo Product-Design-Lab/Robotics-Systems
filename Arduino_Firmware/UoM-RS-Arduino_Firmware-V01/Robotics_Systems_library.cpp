@@ -149,16 +149,17 @@ void UOM_RS_Robot::getControlMode() {
 
 void UOM_RS_Robot::DriveMotors() {
 
-  
-  for (int i=0; i<MAX_ID; i++) {
-    if (control_mode[i]) {
-      motors.WriteSpe(ID[i], q_dot_STS[i]);
+
+  for (int i=0; i<num_ID; i++) {
+    if (control_mode[connected_ID[i]-1]) {
+      motors.WriteSpe(connected_ID[i], q_dot_STS[i]);
     }
     else {
       u16 Speed = 0;
       u8 ACC = 50;
-      motors.WritePosEx(ID[i], q_STS[i], Speed, ACC);
+      motors.WritePosEx(connected_ID[i], q_STS[i], Speed, ACC);
     }
+    
   }
 
 }
@@ -261,6 +262,10 @@ void UOM_RS_Robot::sendDataSerial(int *data, int dataSize) {
       Serial.print("4");
       Serial.print(data[i]);
     }
+    else if ((data[i] > 10000) || (data[i] <= -1000 && data[i] > -10000)) {
+      Serial.print("5");
+      Serial.print(data[i]);
+    }
     else {
       Serial.print("e");
     }
@@ -274,10 +279,16 @@ void UOM_RS_Robot::getDataSerial(double *serialData) {
 
   // External Variables
   // @ serialData           - Double array to store read data.
+  
 
   for (int i = 0; i < MAX_ID; i++) {
+    // serialData[i] = Serial.parseFloat(SKIP_NONE);
     serialData[i] = Serial.parseFloat();
   }
+
+  // while (Serial.available()) {  // Absorb any left over serial data before next command
+  //   Serial.read();
+  // }
 
   // Send acknowledgement that data has been received
   Serial.print(ACK_DATA_RECEIVED);

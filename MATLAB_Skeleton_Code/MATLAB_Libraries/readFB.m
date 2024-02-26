@@ -28,8 +28,8 @@ function [fb, e] = readFB(s, numMotors)
     % @ readSerial()        - Read data sent by Arduino over serial.
     
     % Send position read command to Arduino
-    fprintf(s, '%s', 'FBK\n');
-    fprintf(s, '%s', 'FBK\n'); 
+    writeline(s,'FBK');
+    writeline(s,'FBK');
     
     % Convert encoder counts into radians
     SMS_2_RAD = (2*pi)/4096;

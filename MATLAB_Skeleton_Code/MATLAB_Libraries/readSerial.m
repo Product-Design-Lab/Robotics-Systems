@@ -35,17 +35,19 @@ function [data, e] = readSerial(s, numElements)
     for i=1:numElements
         
         % Check number of chars are to be sent
-        dataTemp = fread(s, 1, 'char');
+        dataTemp = read(s, 1, 'char');
         
         % Read appropriate number of chars
         if char(dataTemp) == '1'
-            q_fb_tmp = fread(s, 1, 'char');
+            q_fb_tmp = read(s, 1, 'char');
         elseif char(dataTemp) == '2'
-            q_fb_tmp = fread(s, 2, 'char');
+            q_fb_tmp = read(s, 2, 'char');
         elseif char(dataTemp) == '3'
-            q_fb_tmp = fread(s, 3, 'char');
+            q_fb_tmp = read(s, 3, 'char');
         elseif char(dataTemp) == '4'
-            q_fb_tmp = fread(s, 4, 'char');
+            q_fb_tmp = read(s, 4, 'char');
+        elseif char(dataTemp) == '5'
+            q_fb_tmp = read(s, 5, 'char');
         else
             % Report error if unexpected char identified and set flag
             "Error"

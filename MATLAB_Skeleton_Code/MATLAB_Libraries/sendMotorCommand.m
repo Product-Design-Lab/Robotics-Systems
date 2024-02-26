@@ -27,16 +27,20 @@ function sendMotorCommand(s, value, numMotors)
     
     
     % Send drive motor command
-    fprintf(s, '%s', 'DRV\n');
-    fprintf(s, '%s', 'DRV\n');
+%     fprintf(s, '%s', 'DRV\n');
+%     fprintf(s, '%s', 'DRV\n');
+    writeline(s,'DRV');
+    writeline(s,'DRV');
 
     % Send joint velocities individually
     for i=1:numMotors
-        fprintf(s, '%s', num2str(value(i), '%.5f') + "e");
+%         fprintf(s, '%s', num2str(value(i), '%.5f') + "e");
+        writeline(s, num2str(value(i), '%.5f') + "e");
     end
     
     % wait for arduino ack
     while ( fread(s, 1, 'uchar') ~= 'd' ) 
     end
+    
 
 end
