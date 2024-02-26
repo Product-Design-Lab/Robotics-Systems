@@ -15,8 +15,16 @@
 
 UOM_RS_Robot::UOM_RS_Robot() {
   num_ID = 0;
-  
-  
+
+  // Initialise arrays based on max connected motors
+  for (int i = 0; i <= MAX_ID; i++) {
+    ID[i] = i+1;
+    connected_ID[i] = 255;
+    q_FB_STS[i] = 0;
+    q_STS[i] = 0;
+    q_dot_STS[i] = 0;
+    control_mode[i] = POSITION;
+  }
 }
 
 
@@ -31,6 +39,8 @@ int UOM_RS_Robot::EstablishUSBConnection() {
     }
   }
   connection_status = connectToMATLAB();
+
+
   if (connection_status == ERROR) {
     Serial.println("Failed to connect to MATLAB. Connecting to Arduino serial monitor instead.");          
   }
@@ -90,6 +100,7 @@ int UOM_RS_Robot::getID() {
 
 void UOM_RS_Robot::UpdateMotorControlMode() {
 
+
   for (int i=0; i<MAX_ID; i++) {
     if (control_mode[i]) {
       motors.WheelMode(ID[i]);
@@ -103,6 +114,7 @@ void UOM_RS_Robot::UpdateMotorControlMode() {
 
 void UOM_RS_Robot::SetMotorControlMode(bool *new_control_mode) {
   for (int i=0; i<MAX_ID; i++) {
+
     control_mode[i] = new_control_mode[i];
   }
 
@@ -110,24 +122,56 @@ void UOM_RS_Robot::SetMotorControlMode(bool *new_control_mode) {
 
 }
 
-void UOM_RS_Robot::DriveMotors() {
+
+
+void UOM_RS_Robot::getControlMode() {
+  double control_mode_tmp[MAX_ID];
+  bool control_mode_tmp_bool[MAX_ID];
+
   
-  for (int i=0; i<MAX_ID; i++) {
-    if (control_mode[i]) {
-      motors.WriteSpe(ID[i], q_dot_STS[i]);
+  for (int i = 0; i < MAX_ID; i++) {
+
+    if (Serial.parseInt() != 0) {
+      control_mode_tmp_bool[i] = VELOCITY;
+    }
+    else {
+      control_mode_tmp_bool[i] = POSITION;
+    }
+  }
+
+  // Send acknowledgement that data has been received
+  Serial.print(ACK_DATA_RECEIVED);
+
+  SetMotorControlMode(control_mode_tmp_bool);
+
+}
+
+
+void UOM_RS_Robot::DriveMotors() {
+
+
+  for (int i=0; i<num_ID; i++) {
+    if (control_mode[connected_ID[i]-1]) {
+      motors.WriteSpe(connected_ID[i], q_dot_STS[i]);
     }
     else {
       u16 Speed = 0;
       u8 ACC = 50;
-      motors.WritePosEx(ID[i], q_STS[i], Speed, ACC);
+      motors.WritePosEx(connected_ID[i], q_STS[i], Speed, ACC);
     }
+    
   }
 
 }
 
+
+
 void UOM_RS_Robot::ReadFeedback() {
-  for (int i=0; i<MAX_ID; i++) {
-    q_FB[i]=motors.ReadPos(ID[i]);
+  for (int i=0; i<num_ID; i++) {
+
+    q_FB_STS[ID[connected_ID[i]-1]-1]=motors.ReadPos(ID[connected_ID[i]-1]);
+
+    // q_FB_STS[i]=motors.ReadPos(ID[i]);
   }
 }
 
@@ -147,7 +191,7 @@ void UOM_RS_Robot::SerialMonitorMotorControl() {
   int motorValue = teststr.toInt();
   Serial.println(motorValue);
 
-  if (control_mode[ID[motorID-1]]-1) {
+  if (control_mode[ID[motorID-1]-1]) {
     q_dot_STS[ID[motorID-1]-1] = motorValue;
   }
   else {
@@ -163,7 +207,7 @@ void UOM_RS_Robot::SerialMonitorMotorControl() {
 void UOM_RS_Robot::InitMotorFeedback() {
   ReadFeedback();
   for (int i=0; i<MAX_ID; i++) {
-    q_STS[i] = q_FB[i];
+    q_STS[i] = q_FB_STS[i];
   }
 }
 
@@ -179,14 +223,166 @@ int UOM_RS_Robot::connectToMATLAB() {
 
   int start_timer = millis();
   while ( c != 'a' ) {
-    if (millis() - start_timer > CONNECTION_TIMEOUT) {
-      return -1;
-    }
+    // if (millis() - start_timer > CONNECTION_TIMEOUT) {
+    //   return -1;
+    // }
     c = Serial.read();
   }
   Serial.println("b");
 
   return 1;
+}
+
+
+
+void UOM_RS_Robot::sendDataSerial(int *data, int dataSize) {
+
+  // Send integer data to MATLAB via serial.
+
+  // External Variables
+  // @ data         - Array of int data (e.g. motor feedback or joystick positions).
+  // @ dataSize     - Integer of how large the expected data should be
+
+  for (int i = 0; i < dataSize; i++) {
+
+    // Notify MATLAB of how many digits to expect prior to sending data.
+    if (data[i] < 10 && data[i] >= 0) {
+      Serial.print("1");
+      Serial.print(data[i]);
+    }
+    else if ((data[i] >= 10 && data[i] < 100) || (data[i] < 0 && data[i] > -10)) {
+      Serial.print("2");
+      Serial.print(data[i]);
+    }
+    else if ((data[i] >= 100 && data[i] < 1000) || (data[i] <= -10 && data[i] > -100)) {
+      Serial.print("3");
+      Serial.print(data[i]);
+    }
+    else if ((data[i] > 1000) || (data[i] <= -100 && data[i] > -1000)) {
+      Serial.print("4");
+      Serial.print(data[i]);
+    }
+    else if ((data[i] > 10000) || (data[i] <= -1000 && data[i] > -10000)) {
+      Serial.print("5");
+      Serial.print(data[i]);
+    }
+    else {
+      Serial.print("e");
+    }
+  }
+
+}
+
+void UOM_RS_Robot::getDataSerial(double *serialData) {
+
+  // Read data such as motor positions/velocities sent from MATLAB in rad/s.
+
+  // External Variables
+  // @ serialData           - Double array to store read data.
+  
+
+  for (int i = 0; i < MAX_ID; i++) {
+    // serialData[i] = Serial.parseFloat(SKIP_NONE);
+    serialData[i] = Serial.parseFloat();
+  }
+
+  // while (Serial.available()) {  // Absorb any left over serial data before next command
+  //   Serial.read();
+  // }
+
+  // Send acknowledgement that data has been received
+  Serial.print(ACK_DATA_RECEIVED);
+}
+
+int UOM_RS_Robot::getState() {
+  // Read desired state to be performed from serial
+
+  // Internal Variables
+  // @ input         - Null terminated string read from MATLAB. This
+  //          is sent prior to reading or writing data over serial.
+
+  if (Serial.available() > 3) {
+    
+
+    // Read state command from MATLAB
+    String input = Serial.readStringUntil('\n');
+   
+
+    // // Absorb any left over serial data before next command
+    // while (Serial.available()) {  
+    //   Serial.read();
+    // }
+
+    if (input == "FBK") {
+      return READ_FB;
+    }
+    else if (input == "DRV") {
+      return DRIVE_MOTOR;
+    }
+    else if (input == "UDM") {
+      return UPDATE_DRIVE_MODE;
+    }
+    else if (input == "UPD") {
+      return UPDATE_MOTOR;
+    }
+    else {
+      return ERROR;
+    }
+  }
+  
+  return IDLE;
+  
+}
+
+void UOM_RS_Robot::sendAck(char ack) {
+  Serial.print(ack);          // Send acknowledgement to MATLAB
+}
+
+void UOM_RS_Robot::SendFB2MATLAB() {
+  sendDataSerial(q_FB_STS, MAX_ID);
+}
+
+void UOM_RS_Robot::getReference() {
+  double ref_tmp[MAX_ID];
+  getDataSerial(ref_tmp);
+
+  for (int i = 0; i < MAX_ID; i++) {
+
+    if (control_mode[i]) {
+      q_dot_STS[i] = ref_tmp[i] * RAD_2_SMS_VEL;
+      
+    }
+    else {
+      q_STS[i] = ref_tmp[i] * RAD_2_SMS;
+    }
+
+  }
+
+}
+
+void UOM_RS_Robot::sendMotorIDs() {
+
+  // Send ID of each connected motor and total number of connected
+  // motors to MATLAB.
+
+  // Internal Variables
+  // @ num_ID          - Number of connected IDs.
+  // @ ID             - Array of connected motor IDs.
+
+  // Internal Functions
+  // sendDataSerial() - Sends desired data over serial to MATLAB.
+
+  // Convert num_ID into single element array to send over serial.
+  int numIDTemp[1] = {UOM_RS_Robot::num_ID};
+  sendDataSerial(numIDTemp, 1);
+
+  // Convert ID from type u8 to int for sending over serial.
+  int idTemp[UOM_RS_Robot::num_ID];
+  for (int i = 0; i < UOM_RS_Robot::num_ID; i++) {
+    idTemp[i] = (int)  UOM_RS_Robot::connected_ID[i];
+  }
+
+  sendDataSerial(idTemp, UOM_RS_Robot::num_ID);
 }
 
 
