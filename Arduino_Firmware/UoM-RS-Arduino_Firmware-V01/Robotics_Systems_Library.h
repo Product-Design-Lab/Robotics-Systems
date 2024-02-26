@@ -70,6 +70,7 @@ private:
   void sendDataSerial(int *data, int dataSize);
   void getDataSerial(double *serialData);
   void sendAck(char ack);
+  
 };
 
 

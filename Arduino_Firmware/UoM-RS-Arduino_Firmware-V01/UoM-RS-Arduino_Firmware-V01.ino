@@ -40,16 +40,16 @@ unsigned long tic = 0, toc = 0, timer = 0;
 
 
 
-bool control_mode[MAX_ID] = {
-                  POSITION, // Motor ID 1
-                  POSITION, // Motor ID 2
-                  POSITION, // Motor ID 3
-                  POSITION, // Motor ID 4
-                  POSITION, // Motor ID 5
-                  POSITION, // Motor ID 6
-                  POSITION, // Motor ID 7
-                  POSITION  // Motor ID 8
-                  };
+// bool control_mode[MAX_ID] = {
+//                   POSITION, // Motor ID 1
+//                   POSITION, // Motor ID 2
+//                   POSITION, // Motor ID 3
+//                   POSITION, // Motor ID 4
+//                   POSITION, // Motor ID 5
+//                   POSITION, // Motor ID 6
+//                   POSITION, // Motor ID 7
+//                   POSITION  // Motor ID 8
+//                   };
 
 
 void setup() {
@@ -68,8 +68,8 @@ void setup() {
 
   robot.InitMotorFeedback();
 
-  // Set motors to position or velocity control mode
-  robot.SetMotorControlMode(control_mode);
+  // // Set motors to position or velocity control mode
+  // robot.SetMotorControlMode(control_mode);
   
   // for (int i=0; i<MAX_ID; i++) {
   //   Serial.print(String(robot.control_mode[i]) + ", ");
